@@ -2,10 +2,6 @@ package workerpool
 
 import (
 	"context"
-
-	"golang.org/x/xerrors"
-
-	"gitlab.paradise-soft.com.tw/glob/ws/util/logger"
 )
 
 func newWorker(ctx context.Context, id int, dispatcher *dispatcher) *worker {
@@ -30,23 +26,12 @@ func (w *worker) start() {
 			select {
 			case task := <-w.taskDepositary.taskStorage:
 				resp, err := w.processTask(task)
-				if err != nil {
-					if xerrors.Is(err, context.Canceled) {
-						logger.SysLog().Debug(w.ctx, "context cancel")
-					} else {
-						// 如果是 context.Cancel 就算是正常離開，不用印 Error
-						logger.SysLog().Error(w.ctx, xerrors.Errorf("worker #%d is done with error: %w", w.id, err))
-					}
+				if err != nil || resp == nil {
 					continue
 				}
 
-				if resp == nil {
-					continue
-				}
+				task.CallBack(resp)
 
-				if err := task.CallBack(resp); err != nil {
-					logger.SysLog().Error(w.ctx, xerrors.Errorf("worker #%d is done with error: %w", w.id, err))
-				}
 			case <-w.quit:
 				return
 			}

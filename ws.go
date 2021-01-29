@@ -1,11 +1,13 @@
 package ws
 
 type NewParams struct {
-	IsCrossDomain bool
-	SendTimeout   int
-	BroadcastBuf  int
-	PoolBuf       int
-	PoolWorkers   int
+	IsCrossDomain   bool
+	SendTimeout     int
+	BroadcastBuf    int
+	PoolBuf         int
+	PoolWorkers     int
+	ServiceName     string
+	ServiceLogLevel string
 }
 
 func New(params NewParams) WSBrokerInterface {
@@ -26,10 +28,12 @@ func New(params NewParams) WSBrokerInterface {
 
 func Default() WSBrokerInterface {
 	return newWSBroker(NewParams{
-		IsCrossDomain: true,
-		SendTimeout:   10,
-		BroadcastBuf:  1000,
-		PoolBuf:       10000,
-		PoolWorkers:   10,
+		IsCrossDomain:   true,
+		SendTimeout:     10,
+		BroadcastBuf:    1000,
+		PoolBuf:         10000,
+		PoolWorkers:     10,
+		ServiceName:     "glob/ws",
+		ServiceLogLevel: "error",
 	})
 }

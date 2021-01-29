@@ -10,11 +10,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var (
-	sysLog  *Logger
-	service = ""
-)
-
 type Message struct {
 	ChainID string `json:"chainID"`
 	Level   string `json:"level"`
@@ -24,29 +19,23 @@ type Message struct {
 	Msg     string `json:"msg"`
 }
 
-func SysLog() *Logger {
-	return sysLog
-}
+func InitSysLog(serviceName, level string) (LoggerInterface, error) {
+	sysLog := newLogger(getZapLevel(level), serviceName)
 
-func InitSysLog(serviceName, level string) error {
-	service = serviceName
-	sysLog = newLogger(getZapLevel(level), serviceName)
-
-	return nil
+	return sysLog, nil
 }
 
 func newLogger(level zapcore.Level, serviceName string) *Logger {
 	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:       "time",
-		LevelKey:      "level",
-		NameKey:       "logger",
-		CallerKey:     "caller",
-		FunctionKey:   zapcore.OmitKey,
-		MessageKey:    "msg",
-		StacktraceKey: "stacktrace",
-		LineEnding:    zapcore.DefaultLineEnding,
-		EncodeLevel:   zapcore.CapitalColorLevelEncoder,
-		// EncodeLevel:    zapcore.CapitalLevelEncoder,
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 		EncodeCaller:   zapcore.ShortCallerEncoder,
@@ -61,7 +50,7 @@ func newLogger(level zapcore.Level, serviceName string) *Logger {
 		InitialFields: map[string]interface{}{
 			"version": "1",
 			"service": serviceName,
-		},                                    // 初始化字段，如：添加一个服务器名称
+		}, // 初始化字段，如：添加一个服务器名称
 		OutputPaths:      []string{"stdout"}, // 输出到指定文件 stdout（标准输出，正常颜色） stderr（错误输出，红色）
 		ErrorOutputPaths: []string{"stderr"},
 	}

@@ -27,6 +27,11 @@ type BroadcastData struct {
 type BroadcastQueue chan BroadcastData
 
 func newWSBroker(params NewParams) WSBrokerInterface {
+	sysLog, err := logger.InitSysLog(params.ServiceName, params.ServiceLogLevel)
+	if err != nil {
+		panic(err)
+	}
+
 	wsBroker := &WSBroker{
 		upgrade: websocket.Upgrader{
 			// 如果有 cross domain 的需求，可加入這個，不檢查 cross domain
@@ -36,6 +41,7 @@ func newWSBroker(params NewParams) WSBrokerInterface {
 		BroadcastQueue: make(BroadcastQueue, params.BroadcastBuf),
 		sendTimeout:    time.Duration(params.SendTimeout) * time.Second,
 		workerPool:     workerpool.NewWorkerPool(context.Background(), params.PoolBuf, params.PoolWorkers),
+		sysLog:         sysLog,
 	}
 
 	go func() {
@@ -79,6 +85,7 @@ type WSBroker struct {
 	sendTimeout    time.Duration
 	BroadcastQueue BroadcastQueue
 	workerPool     workerpool.WorkerPoolInterface
+	sysLog         logger.LoggerInterface
 }
 
 func (wsBroker *WSBroker) RegisterHandler(command string, handler HandlerFunc) {
@@ -103,7 +110,7 @@ func (wsBroker *WSBroker) UpgradeHttp(ctx context.Context, w http.ResponseWriter
 	defer func() {
 		client.Stop()
 		cancel()
-		logger.SysLog().Debug(client.Ctx, "WS 斷線囉")
+		wsBroker.sysLog.Debug(client.Ctx, "WS 斷線囉")
 		wsBroker.removeClientFromPool(client)
 	}()
 
@@ -112,7 +119,7 @@ func (wsBroker *WSBroker) UpgradeHttp(ctx context.Context, w http.ResponseWriter
 		for {
 			if err := wsBroker.receive(client); err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-					logger.SysLog().Error(ctx, xerrors.Errorf("Websocket 異常關閉: %w", err))
+					wsBroker.sysLog.Error(ctx, xerrors.Errorf("Websocket 異常關閉: %w", err))
 				}
 
 				stop <- struct{}{}
@@ -126,7 +133,7 @@ func (wsBroker *WSBroker) UpgradeHttp(ctx context.Context, w http.ResponseWriter
 		for {
 			if err := wsBroker.send(client); err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-					logger.SysLog().Error(ctx, xerrors.Errorf("Websocket 異常關閉: %w", err))
+					wsBroker.sysLog.Error(ctx, xerrors.Errorf("Websocket 異常關閉: %w", err))
 				}
 
 				stop <- struct{}{}
@@ -209,7 +216,7 @@ func (wsBroker *WSBroker) receive(client *WSBrokerClient) error {
 				Message: funcResp.Message,
 				Data:    funcResp.Data,
 			}); err != nil {
-				logger.SysLog().Error(client.Ctx, err)
+				wsBroker.sysLog.Error(client.Ctx, err)
 			}
 		}()
 	}
