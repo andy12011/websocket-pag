@@ -26,36 +26,42 @@ type BroadcastData struct {
 }
 type BroadcastQueue chan BroadcastData
 
+var (
+	once        sync.Once
+	wsBroker    *WSBroker
+)
+
 func newWSBroker(params NewParams) WSBrokerInterface {
 	sysLog, err := logger.InitSysLog(params.ServiceName, params.ServiceLogLevel)
 	if err != nil {
 		panic(err)
 	}
+	once.Do(func() {
+		wsBroker = &WSBroker{
+			upgrade: websocket.Upgrader{
+				// 如果有 cross domain 的需求，可加入這個，不檢查 cross domain
+				CheckOrigin: func(r *http.Request) bool { return params.IsCrossDomain },
+			},
+			handlerFuncs:   make(HandlerFuncsMap),
+			BroadcastQueue: make(BroadcastQueue, params.BroadcastBuf),
+			sendTimeout:    time.Duration(params.SendTimeout) * time.Second,
+			workerPool:     workerpool.NewWorkerPool(context.Background(), params.PoolBuf, params.PoolWorkers),
+			sysLog:         sysLog,
+		}
 
-	wsBroker := &WSBroker{
-		upgrade: websocket.Upgrader{
-			// 如果有 cross domain 的需求，可加入這個，不檢查 cross domain
-			CheckOrigin: func(r *http.Request) bool { return params.IsCrossDomain },
-		},
-		handlerFuncs:   make(HandlerFuncsMap),
-		BroadcastQueue: make(BroadcastQueue, params.BroadcastBuf),
-		sendTimeout:    time.Duration(params.SendTimeout) * time.Second,
-		workerPool:     workerpool.NewWorkerPool(context.Background(), params.PoolBuf, params.PoolWorkers),
-		sysLog:         sysLog,
-	}
-
-	go func() {
-		for {
-			select {
-			case broadcastData := <-wsBroker.BroadcastQueue:
-				for _, client := range wsBroker.GetAllClient() {
-					client.broadcastQueue <- broadcastData
+		go func() {
+			for {
+				select {
+				case broadcastData := <-wsBroker.BroadcastQueue:
+					for _, client := range wsBroker.GetAllClient() {
+						client.broadcastQueue <- broadcastData
+					}
 				}
 			}
-		}
-	}()
+		}()
 
-	wsBroker.workerPool.Start()
+		wsBroker.workerPool.Start()
+	})
 
 	return wsBroker
 }
