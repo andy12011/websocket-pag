@@ -12,8 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/xerrors"
 
-	"gitlab.paradise-soft.com.tw/glob/ws/util/logger"
-	"gitlab.paradise-soft.com.tw/glob/ws/util/workerpool"
+	"github.com/andy12011/websocket-pag/util/logger"
+	"github.com/andy12011/websocket-pag/util/workerpool"
 )
 
 type StringChan chan string
@@ -27,8 +27,8 @@ type BroadcastData struct {
 type BroadcastQueue chan BroadcastData
 
 var (
-	once        sync.Once
-	wsBroker    *WSBroker
+	once     sync.Once
+	wsBroker *WSBroker
 )
 
 func newWSBroker(params NewParams) WSBrokerInterface {

@@ -3,7 +3,7 @@ package ws
 import (
 	"golang.org/x/xerrors"
 
-	"gitlab.paradise-soft.com.tw/glob/ws/util/workerpool"
+	"github.com/andy12011/websocket-pag/util/workerpool"
 )
 
 type Task interface {

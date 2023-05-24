@@ -5,12 +5,12 @@
 ## Installation
 取得專案
 ```shell
-$ go get -u -v -insecure gitlab.paradise-soft.com.tw/glob/ws
+$ go get -u -v -insecure github.com/andy12011/websocket-pag
 ```
 
 匯入到你的專案中
 ```go
-import "gitlab.paradise-soft.com.tw/glob/ws"
+import "github.com/andy12011/websocket-pag"
 ```
 
 ## Quick start
@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.paradise-soft.com.tw/glob/ws"
+	"github.com/andy12011/websocket-pag"
 )
 
 var (
